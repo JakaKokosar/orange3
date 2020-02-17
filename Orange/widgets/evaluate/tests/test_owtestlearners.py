@@ -279,16 +279,33 @@ class TestOWTestLearners(WidgetTest):
         self.send_signal(self.widget.Inputs.test_data, setosa, wait=5000)
 
         self.widget.show()
+
         view = self.widget.score_table.view
+        # self.show()
+        # print(view.model().index(0, 0).data())
         header = view.horizontalHeader()
+        # self.show()
+
+        # print(self.widget.score_table.shown_scores)
+        # print(self.widget.score_table.view.model().index(0, 0).data())
+        # print(self.widget.score_table.view.model().index(1, 0).data())
+        #
+        # print('before click', header.sortIndicatorOrder(), Qt.AscendingOrder)
         QTest.mouseClick(header.viewport(), Qt.LeftButton)
+        #
+        # print('after click', header.sortIndicatorOrder(), Qt.AscendingOrder)
+        # print(self.widget.score_table.view.model().index(0, 0).data())
+        # print(self.widget.score_table.view.model().index(1, 0).data())
 
         # Ensure that the click on header caused an ascending sort
         # Ascending sort means that wrong model should be listed first
         self.assertEqual(header.sortIndicatorOrder(), Qt.AscendingOrder)
         self.assertEqual(view.model().index(0, 0).data(), "VersicolorLearner")
+        # print(view.model().index(0, 0).data())
 
         self.send_signal(self.widget.Inputs.test_data, versicolor, wait=5000)
+        # self.show()
+        # print(view.model().index(0, 0).data())
         self.assertEqual(view.model().index(0, 0).data(), "SetosaLearner")
 
         self.widget.hide()

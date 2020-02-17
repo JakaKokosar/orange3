@@ -1,11 +1,11 @@
-foldable pip install -U setuptools pip codecov
+pip install -U setuptools pip codecov
 
 # Don't install PyQt5 if PyQt4 is requested
 [ "$PYQT4" ] && sed -i '/pyqt5/Id' requirements-doc.txt
 
 if [[ $TRAVIS_PYTHON_VERSION == 3.4 ]]; then pip install pandas==0.20.3; fi
 
-pip install numba==0.41.0 llvmlite==0.26.0
+#pip install numba==0.41.0 llvmlite==0.26.0
 
 # Install dependencies sequentially
 cat requirements-core.txt \
@@ -20,9 +20,9 @@ cat requirements-core.txt \
     done
 
 # Create a source tarball from the git checkout
-foldable python setup.py sdist
+python setup.py sdist
 # Create a binary wheel from the packed source
-foldable pip wheel --no-deps -w dist dist/Orange3-*.tar.gz
+pip wheel --no-deps -w dist dist/Orange3-*.tar.gz
 # Install into a testing folder
 ORANGE_DIR="$(pwd)"/build/travis-test
 mkdir -p "$ORANGE_DIR"

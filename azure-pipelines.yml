@@ -1,0 +1,107 @@
+#trigger:
+#  - master
+#
+#jobs:
+#  - job: "Test"
+#    strategy:
+#      matrix:
+##        UbuntuPy36:
+##          python.version: '3.6'
+##          vmImage: 'ubuntu-latest'
+##          tox_env: 'py36'
+##        UbuntuPy37:
+##          python.version: '3.7'
+##          vmImage: 'ubuntu-latest'
+##          tox_env: 'py37'
+##        UbuntuPy38:
+##          python.version: '3.8'
+##          vmImage: 'ubuntu-latest'
+##          tox_env: 'py38'
+#
+##        macOSPy36:
+##          python.version: '3.6'
+##          vmImage: 'macOS-10.13'
+##          tox_env: 'py36'
+##        macOSPy37:
+##          python.version: '3.7'
+##          vmImage: 'macOS-10.13'
+##          tox_env: 'py37'
+##        macOSPy38:
+##          python.version: '3.8'
+##          vmImage: 'macOS-10.13'
+##          tox_env: 'py38'
+#
+#
+#        WindowsPy36:
+#          python.version: '3.6'
+#          vmImage: 'windows-latest'
+#          tox_env: 'py36'
+#        WindowsPy37:
+#          python.version: '3.7'
+#          vmImage: 'windows-latest'
+#          tox_env: 'py37'
+#        WindowsPy38:
+#          python.version: '3.8'
+#          vmImage: 'windows-latest'
+#          tox_env: 'py38'
+#
+#    pool:
+#      vmImage: $(vmImage)
+#
+#    steps:
+#      - task: UsePythonVersion@0
+#        displayName: 'Use Python $(python.version)'
+#        inputs:
+#          versionSpec: '$(python.version)'
+#
+#      - script: |
+#          docker pull microsoft/mssql-server-windows-developer
+#          docker run -d -p 1433:1433 -e sa_password=SQLpassword123 -e ACCEPT_EULA=Y microsoft/mssql-server-windows-developer
+#          docker ps -a
+#        displayName: 'Run SQL Server for Windows Server'
+#
+##      - bash: |
+##          /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+##          echo ">>> Started xvfb"
+##          sudo apt-get install -y libxkbcommon-x11-0 xdg-utils libgl1-mesa-glx x11-utils
+##        displayName: Start xvfb and install missing dependencies
+##        condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+#
+##      - script: pip install tox
+##        displayName: 'Install Tox'
+#
+##      - script: tox -e $(tox_env)
+##        # condition: and(succeeded(), in(variables['Agent.OS'], 'Darwin', 'Windows_NT'))
+##        displayName: 'Run Tox'
+##        env:
+##          DISPLAY: ':99.0'
+#
+##      - script: catchsegv xvfb-run -a -s "-screen 0 1280x1024x24" tox -e $(tox_env)
+##        condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+##        displayName: 'Run Tox linux'
+#
+#
+#        # libqt5x11extras5 libegl1-mesa libx11-xcb1 libxcb-xkb1 libxcb-icccm4 libxcb-image0 libxcb-render-util0 libdbus-1-3
+#
+##pool:
+##  vmImage: 'windows-latest'
+##strategy:
+##  matrix:
+##    Python36:
+##      python.version: '3.6'
+##    Python37:
+##      python.version: '3.7'
+##    Python38:
+##      python.version: '3.8'
+##
+##steps:
+##  - task: UsePythonVersion@0
+##    displayName: 'Use Python $(python.version)'
+##    inputs:
+##      versionSpec: '$(python.version)'
+##
+##  - script: pip install tox
+##    displayName: 'Install Tox'
+##
+##  - script: tox -e py
+##    displayName: 'Run Tox'
