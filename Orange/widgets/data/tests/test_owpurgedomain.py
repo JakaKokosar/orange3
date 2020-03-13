@@ -30,3 +30,7 @@ class TestOWPurgeDomain(WidgetTest):
         self.assertEqual(input_sum.call_args[0][0].brief, "")
         output_sum.assert_called_once()
         self.assertEqual(output_sum.call_args[0][0].brief, "")
+
+    def test_minimum_size(self):
+        min_size = self.widget.minimumSizeHint()
+        print('DEBUGME!', type(self.widget), self.widget.minimumSizeHint(), min_size.width(), min_size.height())
