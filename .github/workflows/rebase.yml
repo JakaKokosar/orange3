@@ -11,6 +11,7 @@ jobs:
       - name: Checkout the latest code
         uses: actions/checkout@v2
         with:
+          persist-credentials: false
           token: ${{ secrets.TEST_REBASE_PAT }}
           fetch-depth: 0 # otherwise, you will fail to push refs to dest repo
       - name: Automatic Rebase
@@ -29,3 +30,4 @@ jobs:
               repo: context.repo.repo,
               body: 'Rebase successful'
             })
+
