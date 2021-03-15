@@ -11,17 +11,17 @@ jobs:
       - name: Checkout the latest code
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.TEST_REBASE_PAT }}
           fetch-depth: 0 # otherwise, you will fail to push refs to dest repo
       - name: Automatic Rebase
         uses: cirrus-actions/rebase@1.4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TEST_REBASE_PAT }}
       - name: Notify on success
         uses: actions/github-script@v3
         if: success()
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{secrets.TEST_REBASE_PAT}}
           script: |
             github.issues.createComment({
               issue_number: context.issue.number,
