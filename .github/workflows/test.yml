@@ -1,4 +1,4 @@
-name: Test
+name: CI Test
 
 on:
   push:
@@ -8,157 +8,219 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+env:
+  UV_SYSTEM_PYTHON: 1
+  PYTHONWARNINGS: once
+
 jobs:
-  lint:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'true'
-          fetch-depth: '2'
+  run_tests:
+      runs-on: ${{ matrix.os }}
+      continue-on-error: ${{ matrix.experimental }}
+      timeout-minutes: 20
+      name: >-
+        ${{ matrix.dependencies }}${{ matrix.orange_base_nightly && '(nightly)' || '' }},
+        ${{ matrix.pyqt }},
+        py${{ matrix.python-version }} (${{ matrix.os }})
+      strategy:
+        fail-fast: false
+        matrix:
+          os: [macos-latest, windows-latest, ubuntu-latest]
+          python-version: ['3.10', '3.11', '3.12', '3.13']
+          dependencies: [latest]
+          pyqt: [pyqt5]
+          orange_base_nightly: [false]
+          experimental: [false]
+          include:
+              # test with pyqt6
+            - os: windows-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: false
+              experimental: false
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+            - os: macos-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: false
+              experimental: false
 
-      - name: Install Tox
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade tox
+            - os: ubuntu-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: false
+              experimental: false
 
-      - name: Run Pylint
-        run:  tox -e pylint-ci
 
-  test_on_linux:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    name: ${{ matrix.name }} (${{ matrix.os }}, py${{ matrix.python-version }})
-    strategy:
-      fail-fast: False
-      matrix:
-        os: [ubuntu-22.04]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-        tox_env: [orange-released]
-        name: [Released]
-        include:
-          - os: ubuntu-22.04
-            python-version: '3.13'
-            tox_env: orange-latest
-            name: Latest
-          - os: ubuntu-20.04
-            python-version: '3.10'
-            tox_env: orange-oldest
-            name: Oldest dependencies
-          - os: ubuntu-22.04
-            python-version: '3.12'
-            tox_env: pyqt6
-            name: PyQt6
-          - os: ubuntu-22.04
-            python-version: '3.13'
-            tox_env: beta
-            name: "Scientific Python nightly wheels"
+            # test with oldest dependencies
+            - os: windows-latest
+              python-version: '3.10'
+              dependencies: oldest
+              pyqt: pyqt5
+              orange_base_nightly: false
+              experimental: false
 
-    services:
-      postgres:
-        image: orangedm/postgres:11
-        env:
-          POSTGRES_USER: postgres_user
-          POSTGRES_PASSWORD: postgres_password
-          POSTGRES_DB: postgres_db
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+            - os: macos-latest
+              python-version: '3.10'
+              dependencies: oldest
+              pyqt: pyqt5
+              orange_base_nightly: false
+              experimental: false
 
-      SQLServer:
-        image: mcr.microsoft.com/mssql/server:2017-latest
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: sqlServerPassw0rd
-        ports:
-          - 1433:1433
+            - os: ubuntu-latest
+              python-version: '3.10'
+              dependencies: oldest
+              pyqt: pyqt5
+              orange_base_nightly: false
+              experimental: false
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
 
-      - name: Install linux system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libegl1-mesa libxcb-shape0 libxcb-cursor0
+            # test with nightly orange-canvas-core and orange-widget-base
+            - os: windows-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: true
+              experimental: true
 
-      - name: Install glibc-tools dependency on Ubuntu-22.04
-        if: matrix.os == 'ubuntu-22.04'
-        run: sudo apt-get install -y glibc-tools  # required for catchsegv
+            - os: macos-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: true
+              experimental: true
 
-      - name: Install Tox
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade tox
+            - os: ubuntu-latest
+              python-version: '3.13'
+              dependencies: latest
+              pyqt: pyqt6
+              orange_base_nightly: true
+              experimental: true  
 
-      - name: Skip testing workflows at coverage
-        if: |
-          matrix.python-version == '3.12' && matrix.tox_env == 'orange-released'
-        run: |
-          echo 'SKIP_EXAMPLE_WORKFLOWS=1' >> $GITHUB_ENV
+          #     name: Latest
+          #   - os: windows-latest
+          #     python-version: '3.12'
+          #     tox_env: pyqt6
+          #     name: PyQt6
+          #   - os: macos-latest
+          #     python-version: '3.12'
+          #     tox_env: pyqt6
+          #     name: PyQt6   # libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-cursor0     libegl1
 
-      - name: Run Tox
-        run: catchsegv xvfb-run -a -s "$XVFBARGS" tox -e ${{ matrix.tox_env }}
-        env:
-          XVFBARGS: "-screen 0 1280x1024x24"
-          ORANGE_TEST_DB_URI: postgres://postgres_user:postgres_password@localhost:5432/postgres_db|mssql://SA:sqlServerPassw0rd@localhost:1433
+      steps:
+        - name: Install linux system dependencies
+          if: matrix.os == 'ubuntu-latest'
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 libxcb-cursor0 glibc-tools libegl1
 
-      - name: Upload code coverage
-        if: matrix.python-version == '3.12' && matrix.tox_env == 'orange-released'
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+        - uses: actions/checkout@v4
+          with:
+            submodules: 'true'
+            fetch-depth: '2'
 
-  test_on_macos_and_windows:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    name: ${{ matrix.name }} (${{ matrix.os }}, py${{ matrix.python-version }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-        tox_env: [orange-released]
-        name: [Released]
-        include:
-          - os: windows-latest
-            python-version: '3.13'
-            tox_env: orange-latest
-            name: Latest
-          - os: macos-latest
-            python-version: '3.13'
-            tox_env: orange-latest
-            name: Latest
-          - os: windows-latest
-            python-version: '3.12'
-            tox_env: pyqt6
-            name: PyQt6
-          - os: macos-latest
-            python-version: '3.12'
-            tox_env: pyqt6
-            name: PyQt6
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+        - name: Install uv package manager
+          uses: astral-sh/setup-uv@v6
+          with:
+            version: 'latest'
+            # cache: true 
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade tox
+        - name: Install Orange and dependencies
+          shell: bash
+          run: |
+            uv pip install -U pip pytest pytest-xdist
 
-      - name: Test with Tox
-        run: |
-          tox -e ${{ matrix.tox_env }}
+            uv pip install -r requirements-${{ matrix.pyqt }}.txt
+
+            # if nightly
+            if [ "${{ matrix.orange_base_nightly }}" = "true" ]; then
+              uv pip install "git+https://github.com/biolab/orange-canvas-core@master"
+              uv pip install "git+https://github.com/biolab/orange-widget-base@master" 
+              uv pip install "git+https://github.com/pyqtgraph/pyqtgraph@master"
+            fi
+
+            if [ "${{ matrix.dependencies }}" = "oldest" ]; then
+              # Check resolution strategy: https://docs.astral.sh/uv/concepts/resolution/#resolution-strategy
+              uv pip install -e . --resolution lowest-direct 
+            else
+              uv pip install -e .
+            fi
+            
+        - name: Run tests
+          shell: bash
+          run: |
+            if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+              # catchsegv xvfb-run -a -s "$XVFBARGS" uv run --no-project python -m unittest -v Orange.tests Orange.widgets.tests
+              catchsegv xvfb-run -a -s "$XVFBARGS" uv run --no-project pytest --dist loadscope -n auto Orange/
+            else
+              # uv run --no-project python -m unittest -v Orange.tests Orange.widgets.tests
+              uv run --no-project pytest --dist loadscope -n auto Orange/
+            fi
+            
+    
+  # run_coverage:
+  #     runs-on: ${{ matrix.os }}
+  #     timeout-minutes: 15
+  #     name: Test with database support (${{matrix.os}})
+  #     strategy:
+  #       fail-fast: false
+  #       matrix:
+  #         os: [macos-latest, windows-latest, ubuntu-latest]
+  #         python-version: ['3.10']
+
+  #     services:
+  #       postgres:
+  #         image: orangedm/postgres:11
+  #         env:
+  #           POSTGRES_USER: postgres_user
+  #           POSTGRES_PASSWORD: postgres_password
+  #           POSTGRES_DB: postgres_db
+  #         ports:
+  #           - 5432:5432
+  #         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+  #       SQLServer:
+  #         image: mcr.microsoft.com/mssql/server:2017-latest
+  #         env:
+  #           ACCEPT_EULA: Y
+  #           SA_PASSWORD: sqlServerPassw0rd
+  #         ports:
+  #           - 1433:1433
+
+  #     steps:
+  #       - uses: actions/checkout@v4
+  #       - name: Set up Python ${{ matrix.python-version }}
+  #         uses: actions/setup-python@v5
+  #         with:
+  #           python-version: ${{ matrix.python-version }}
+
+
+  #       - name: Install uv package manager
+  #         uses: astral-sh/setup-uv@v6
+  #         with:
+  #           version: 'latest'
+  #           # cache: true --resolution lowest
+
+  #       - name: Install Orange and dependencies
+  #         run: |
+  #           uv pip install -U pip
+  #           uv pip install -r requirements-pyqt.txt
+  #           uv pip install -e .
+
+  #       - name: Run tests
+  #         run: |
+  #           uv run --no-project python -m unittest -v Orange.tests 
+
+
+
