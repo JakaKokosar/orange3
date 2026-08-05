@@ -9,7 +9,12 @@ import numpy as np
 import networkx as nx
 # NOTE: The ``community`` package might be renamed in the near future, see
 # GH issue https://github.com/taynaud/python-louvain/issues/23
-from community import best_partition
+try:
+    from community import best_partition
+except ImportError:
+    # python-louvain is unavailable on some platforms (e.g. Pyodide/wasm);
+    # keep the module importable and fail on use instead
+    best_partition = None
 from sklearn.base import BaseEstimator
 from sklearn.neighbors import NearestNeighbors
 
@@ -93,6 +98,9 @@ class LouvainMethod(BaseEstimator):
         return self.fit_graph(graph)
 
     def fit_graph(self, graph):
+        if best_partition is None:
+            raise ImportError(
+                "python-louvain is not available in this environment")
         partition = best_partition(
             graph, resolution=self.resolution, random_state=self.random_state)
         self.labels_ = np.fromiter(

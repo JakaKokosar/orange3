@@ -530,7 +530,10 @@ class InstallMultilingualCommand(install):
 def setup_package():
     write_version_py()
     cmdclass = {
-        'install': InstallMultilingualCommand,
+        # trubar translation injects orangecanvas.localization imports into
+        # every module; skip it in headless builds where orangecanvas is
+        # not a dependency
+        'install': install if NO_GUI else InstallMultilingualCommand,
         'lint': LintCommand,
         'coverage': CoverageCommand,
         'config': config,

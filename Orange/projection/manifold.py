@@ -1,3 +1,6 @@
+# Postponed evaluation keeps openTSNE annotations below from importing it
+from __future__ import annotations
+
 from typing import Union
 
 import logging
@@ -27,7 +30,11 @@ class _LazyTSNE:  # pragma: no cover
     def __getattr__(self, attr):
         # pylint: disable=import-outside-toplevel,redefined-outer-name,global-statement
         global openTSNE
-        import openTSNE
+        try:
+            import openTSNE
+        except ImportError as err:
+            raise ImportError(
+                "openTSNE is not available in this environment") from err
         # Disable t-SNE user warnings
         openTSNE.tsne.log.setLevel(logging.ERROR)
         openTSNE.affinity.log.setLevel(logging.ERROR)
