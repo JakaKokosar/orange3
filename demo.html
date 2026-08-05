@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orange3 in the browser</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 3rem auto; padding: 0 1rem; }
+  button { font-size: 1rem; padding: .5rem 1.25rem; cursor: pointer; }
+  button:disabled { cursor: wait; opacity: .6; }
+  #log { white-space: pre-wrap; background: #f4f4f4; border-radius: 6px; padding: 1rem; margin-top: 1rem; min-height: 8rem; font-family: ui-monospace, monospace; font-size: .85rem; }
+  .ok { color: #0a7a2f; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Orange3 (headless) in Pyodide</h1>
+<p>Loads Pyodide 0.29.4 from the CDN, installs the locally built wasm wheel,
+then trains on iris with 5-fold cross-validation.</p>
+<button id="run">Load &amp; train on iris</button>
+<div id="log">Idle. Click the button — first load fetches ~40 MB of packages.</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"></script>
+<script>
+const logEl = document.getElementById("log");
+const btn = document.getElementById("run");
+const log = (msg, cls) => {
+  const line = document.createElement("div");
+  line.textContent = msg;
+  if (cls) line.className = cls;
+  logEl.appendChild(line);
+};
+
+btn.addEventListener("click", async () => {
+  btn.disabled = true;
+  logEl.textContent = "";
+  const t0 = performance.now();
+  const sec = () => ((performance.now() - t0) / 1000).toFixed(1) + "s";
+  try {
+    log("Loading Pyodide runtime…");
+    const pyodide = await loadPyodide();
+    log(`Pyodide ready (${sec()}). Loading scientific packages…`);
+    await pyodide.loadPackage(
+      ["numpy", "scipy", "scikit-learn", "pandas", "xgboost",
+       "bottleneck", "micropip"],
+      { messageCallback: () => {} });
+    log(`Packages ready (${sec()}). Installing Orange3 wheel…`);
+    const wheel = new URL(
+      "dist/orange3-3.41.0.dev0+6bf97ef-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+      window.location.href).href;
+    await pyodide.runPythonAsync(`
+        import micropip
+        await micropip.install("${wheel}")
+    `);
+    log(`Orange installed (${sec()}). Training…`);
+    const result = await pyodide.runPythonAsync(`
+        import Orange
+        from Orange.data import Table
+        from Orange.classification import LogisticRegressionLearner, RandomForestLearner
+        from Orange.evaluation import CrossValidation, CA, AUC
+
+        data = Table("iris")
+        learners = [LogisticRegressionLearner(), RandomForestLearner()]
+        res = CrossValidation(k=5)(data, learners)
+        ca, auc = CA(res), AUC(res)
+        (f"Orange {Orange.version.version} | iris, 5-fold CV\\n"
+         f"  LogisticRegression: CA={ca[0]:.3f}  AUC={auc[0]:.3f}\\n"
+         f"  RandomForest:       CA={ca[1]:.3f}  AUC={auc[1]:.3f}")
+    `);
+    log(result, "ok");
+    log(`Done in ${sec()}.`);
+  } catch (err) {
+    log("FAILED: " + err, "");
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
