@@ -14,7 +14,14 @@ from Orange.data import Table, Instance, Domain, ContinuousVariable, DiscreteVar
 
 
 # noinspection PyPep8Naming
-from Orange.widgets.tests.utils import table_dense_sparse
+try:
+    from Orange.widgets.tests.utils import table_dense_sparse
+except ImportError:
+    # Orange.widgets is not included in headless builds (e.g. Pyodide)
+    from unittest import skip
+
+    def table_dense_sparse(test_case):
+        return skip("Orange.widgets is not available")(test_case)
 
 
 class TestEqualFreq(TestCase):

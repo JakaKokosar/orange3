@@ -1,8 +1,10 @@
+import sys
 import unittest
 
 from Orange.data.io import UrlReader
 
 
+@unittest.skipIf(sys.platform == "emscripten", "no network in wasm runtime")
 class TestUrlReader(unittest.TestCase):
     def test_basic_file(self):
         data = UrlReader("https://datasets.biolab.si/core/titanic.tab").read()

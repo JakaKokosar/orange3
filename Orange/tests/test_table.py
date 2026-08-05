@@ -5,6 +5,7 @@ import copy
 import os
 import pickle
 import random
+import sys
 import unittest
 import warnings
 from unittest.mock import Mock, MagicMock, patch
@@ -3459,6 +3460,8 @@ class TestTableSparseDense(unittest.TestCase):
         self.assertFalse(sp.issparse(d.metas))
 
 
+@unittest.skipIf(sys.platform == "emscripten",
+                 "wasm runtime cannot spawn threads")
 class ConcurrencyTests(unittest.TestCase):
 
     def test_from_table_non_blocking(self):

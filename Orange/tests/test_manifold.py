@@ -15,6 +15,13 @@ from Orange.projection import (MDS, Isomap, LocallyLinearEmbedding,
 from Orange.projection.manifold import torgerson
 from Orange.tests import test_filename
 
+try:
+    # pylint: disable=unused-import
+    import openTSNE  # unavailable e.g. on Pyodide
+    HAVE_OPENTSNE = True
+except ImportError:
+    HAVE_OPENTSNE = False
+
 
 np.random.seed(42)
 
@@ -76,7 +83,10 @@ class TestManifold(unittest.TestCase):
             n_init=1)
         X = projector(self.iris[:5]).embedding_
         result = np.array([-0.31871, -0.064644, 0.015653, 0, 0, 0])
-        np.testing.assert_allclose(np.abs(X[0]), np.abs(result), rtol=1e-2)
+        # atol for the components that are exactly 0 in `result`; they come
+        # out as ~1e-11 rounding noise on some platforms (e.g. wasm)
+        np.testing.assert_allclose(np.abs(X[0]), np.abs(result), rtol=1e-2,
+                                   atol=1e-8)
 
     def test_isomap(self):
         for i in range(1, 4):
@@ -140,6 +150,7 @@ class TestManifold(unittest.TestCase):
             torgerson(dis, eigen_solver="madness")
 
 
+@unittest.skipUnless(HAVE_OPENTSNE, "openTSNE is not installed")
 class TestTSNE(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

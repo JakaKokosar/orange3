@@ -5,7 +5,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from Orange.misc.utils.embedder_utils import get_proxies, EmbedderCache
+try:
+    from Orange.misc.utils.embedder_utils import get_proxies, EmbedderCache
+except ImportError as err:
+    # embedder_utils needs Orange.canvas, absent from headless builds
+    raise unittest.SkipTest(f"embedder_utils is not importable: {err}")
 
 
 class TestProxies(unittest.TestCase):

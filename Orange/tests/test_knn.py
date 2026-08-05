@@ -48,6 +48,9 @@ class TestKNNLearner(unittest.TestCase):
         self.assertEqual(predictions[3], 1.0)
 
     def test_random(self):
+        # seed, otherwise the global RNG state (and thus the drawn sample)
+        # depends on test execution order and platform
+        np.random.seed(14)
         nrows, ncols = 1000, 5
         x = np.random.randint(-20, 51, (nrows, ncols))
         y = np.random.randint(0, 9, (nrows, 1))

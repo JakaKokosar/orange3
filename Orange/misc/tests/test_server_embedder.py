@@ -7,7 +7,12 @@ import numpy as np
 from httpx import ReadTimeout
 
 from Orange.data import Domain, StringVariable, Table
-from Orange.misc.tests.example_embedder import ExampleServerEmbedder
+
+try:
+    from Orange.misc.tests.example_embedder import ExampleServerEmbedder
+except ImportError as err:
+    # server_embedder needs AnyQt/Orange.canvas, absent from headless builds
+    raise unittest.SkipTest(f"server_embedder is not importable: {err}")
 
 _HTTPX_POST_METHOD = "httpx.AsyncClient.post"
 

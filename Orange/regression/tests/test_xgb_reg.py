@@ -1,3 +1,4 @@
+import sys
 import unittest
 from typing import Callable
 
@@ -57,6 +58,8 @@ class TestXGBReg(unittest.TestCase):
         self.assertEqual(len(self.housing), len(pred))
         self.assertGreater(all(pred), 0)
 
+    @unittest.skipIf(sys.platform == "emscripten",
+                     "xgboost sparse predict fatally crashes the wasm runtime")
     @test_learners
     def test_predict_sparse(self, learner_class: XGBBase):
         sparse_data = self.housing.to_sparse()

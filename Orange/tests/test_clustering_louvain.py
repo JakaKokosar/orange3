@@ -12,7 +12,15 @@ from Orange.clustering.louvain import matrix_to_knn_graph
 from Orange.data import Table
 from Orange.clustering.louvain import Louvain
 
+try:
+    # pylint: disable=unused-import
+    import community  # python-louvain; unavailable e.g. on Pyodide
+    HAVE_LOUVAIN = True
+except ImportError:
+    HAVE_LOUVAIN = False
 
+
+@unittest.skipUnless(HAVE_LOUVAIN, "python-louvain is not installed")
 class TestLouvain(unittest.TestCase):
     def setUp(self):
         self.iris = Table('iris')

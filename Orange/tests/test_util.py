@@ -21,7 +21,10 @@ SOMETHING = 0xf00babe
 class TestUtil(unittest.TestCase):
     def test_get_entry_point(self):
         # pylint: disable=import-outside-toplevel
-        from Orange.canvas.__main__ import main as real_main
+        try:
+            from Orange.canvas.__main__ import main as real_main
+        except ImportError:
+            self.skipTest("Orange.canvas is not available (headless build)")
         main = get_entry_point("Orange3", "gui_scripts", "orange-canvas")
         self.assertIs(main, real_main)
 
