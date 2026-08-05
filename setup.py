@@ -2,6 +2,7 @@
 
 import os
 import sys
+import sysconfig
 import subprocess
 from setuptools import setup, find_packages, Command
 from setuptools.command.install import install
@@ -81,8 +82,19 @@ CLASSIFIERS = [
 
 PYTHON_REQUIRES = ">=3.11"
 
+# Headless build: exclude Orange.widgets/Orange.canvas and GUI requirements.
+# Enabled explicitly with ORANGE_NO_GUI=1 or implicitly when cross-compiling
+# for Emscripten/Pyodide.
+NO_GUI = (
+    os.environ.get("ORANGE_NO_GUI") == "1"
+    or os.environ.get("_PYTHON_HOST_PLATFORM", "").startswith("emscripten")
+    or sysconfig.get_platform().startswith("emscripten")
+)
 
-requirements = ['requirements-core.txt', 'requirements-gui.txt']
+if NO_GUI:
+    requirements = ['requirements-core.txt']
+else:
+    requirements = ['requirements-core.txt', 'requirements-gui.txt']
 
 
 INSTALL_REQUIRES = sorted(set(
@@ -95,23 +107,26 @@ INSTALL_REQUIRES = sorted(set(
 
 EXTRAS_REQUIRE = {}
 
-ENTRY_POINTS = {
-    "orange.widgets": (
-        "Orange Widgets = Orange.widgets",
-    ),
-    "orange.canvas.help": (
-        "html-index = Orange.widgets:WIDGET_HELP_PATH",
-    ),
-    "orange.canvas.drophandler": (
-        "File = Orange.widgets.data.owfile:OWFileDropHandler",
-        "Load Model = Orange.widgets.model.owloadmodel:OWLoadModelDropHandler",
-        "Distance File = Orange.widgets.unsupervised.owdistancefile:OWDistanceFileDropHandler",
-        "Python Script = Orange.widgets.data.owpythonscript:OWPythonScriptDropHandler",
-    ),
-    "gui_scripts": (
-        "orange-canvas = Orange.canvas.__main__:main",
-    ),
-}
+if NO_GUI:
+    ENTRY_POINTS = {}
+else:
+    ENTRY_POINTS = {
+        "orange.widgets": (
+            "Orange Widgets = Orange.widgets",
+        ),
+        "orange.canvas.help": (
+            "html-index = Orange.widgets:WIDGET_HELP_PATH",
+        ),
+        "orange.canvas.drophandler": (
+            "File = Orange.widgets.data.owfile:OWFileDropHandler",
+            "Load Model = Orange.widgets.model.owloadmodel:OWLoadModelDropHandler",
+            "Distance File = Orange.widgets.unsupervised.owdistancefile:OWDistanceFileDropHandler",
+            "Python Script = Orange.widgets.data.owpythonscript:OWPythonScriptDropHandler",
+        ),
+        "gui_scripts": (
+            "orange-canvas = Orange.canvas.__main__:main",
+        ),
+    }
 
 
 DATA_FILES = []
@@ -187,7 +202,14 @@ if not release:
         a.close()
 
 
-PACKAGES = find_packages(include=("Orange*",))
+if NO_GUI:
+    PACKAGES = find_packages(
+        include=("Orange*",),
+        exclude=("Orange.widgets", "Orange.widgets.*",
+                 "Orange.canvas", "Orange.canvas.*"),
+    )
+else:
+    PACKAGES = find_packages(include=("Orange*",))
 
 # Extra non .py, .{so,pyd} files that are installed within the package dir
 # hierarchy
@@ -217,6 +239,12 @@ PACKAGE_DATA = {
                      "datasets/*.basket", "datasets/*.csv",
                      "datasets/*.pkl", "datasets/*.pkl.gz"]
 }
+
+if NO_GUI:
+    PACKAGE_DATA = {
+        package: patterns for package, patterns in PACKAGE_DATA.items()
+        if not package.startswith(("Orange.widgets", "Orange.canvas"))
+    }
 
 
 class LintCommand(Command):
@@ -459,15 +487,17 @@ def ext_modules():
                 "predict_classification", "predict_regression"
             ]
         ),
-        Extension(
+    ]
+
+    if not NO_GUI:
+        modules.append(Extension(
             "Orange.widgets.utils._grid_density",
             sources=["Orange/widgets/utils/_grid_density.cpp"],
             language="c++",
             include_dirs=includes,
             libraries=libraries,
             export_symbols=["compute_density"],
-        ),
-    ]
+        ))
 
     if have_cython:
         modules += cythonize(Extension(

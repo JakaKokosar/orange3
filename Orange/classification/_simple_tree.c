@@ -60,7 +60,7 @@ enum { IntVar, FloatVar };
 #define QSORT_R_STYLE_BSD
 #define QSORT_R_FUNC(base, nel, size, thunk, compar) \
 	qsort_r(base, nel, size, thunk, compar)
-#elif (defined __GLIBC__ || defined __GNU__ || defined __linux__)
+#elif (defined __GLIBC__ || defined __GNU__ || defined __linux__ || defined __EMSCRIPTEN__)
 #define QSORT_R_STYLE_GNU
 #define QSORT_R_FUNC(base, nel, size, thunk, compar) \
 	qsort_r(base, nel, size, compar, thunk)
